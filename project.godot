@@ -11,8 +11,14 @@ config_version=5
 [application]
 
 config/name="Game"
+run/main_scene="uid://doglu0t1whx6u"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
+
+[display]
+
+window/size/viewport_width=1459
+window/stretch/mode="viewport"
 
 [physics]
 

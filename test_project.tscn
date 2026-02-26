@@ -1,0 +1,59 @@
+[gd_scene format=3 uid="uid://cjd5yc4r2umcv"]
+
+[ext_resource type="Script" uid="uid://c20vvxbdtv7xw" path="res://character_body_2d.gd" id="1_2sevl"]
+[ext_resource type="Texture2D" uid="uid://1d7eexj3bkmg" path="res://icon.svg" id="2_qxous"]
+[ext_resource type="Script" uid="uid://djwrqai3etyus" path="res://camera_2d.gd" id="3_uhkg8"]
+[ext_resource type="Script" uid="uid://03h2uqph5nfi" path="res://label.gd" id="4_6uwxn"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_0hol4"]
+size = Vector2(69, 60)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_q6r6c"]
+size = Vector2(351, 13)
+
+[sub_resource type="Gradient" id="Gradient_kdubu"]
+offsets = PackedFloat32Array(0.084337346, 0.6325301, 1)
+colors = PackedColorArray(0.6605044, 0.45314127, 0.6428103, 1, 0.72247565, 0.31965756, 0.88751626, 1, 1, 1, 1, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_d21ai"]
+gradient = SubResource("Gradient_kdubu")
+
+[node name="Node2D" type="Node2D" unique_id=1277673874]
+
+[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=981994014]
+script = ExtResource("1_2sevl")
+
+[node name="Sprite2D" type="Sprite2D" parent="CharacterBody2D" unique_id=1675665640]
+scale = Vector2(0.5390625, 0.46874997)
+texture = ExtResource("2_qxous")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1089064471]
+shape = SubResource("RectangleShape2D_0hol4")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=550225969]
+zoom = Vector2(3.23, 3.23)
+script = ExtResource("3_uhkg8")
+
+[node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=246049676]
+position = Vector2(0, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D" unique_id=1210511472]
+position = Vector2(0, 50)
+shape = SubResource("RectangleShape2D_q6r6c")
+
+[node name="Sprite2D" type="Sprite2D" parent="StaticBody2D" unique_id=1344136003]
+position = Vector2(0, 50)
+scale = Vector2(5.4843755, 0.203125)
+texture = SubResource("GradientTexture2D_d21ai")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=277642463]
+
+[node name="Label" type="Label" parent="CanvasLayer" unique_id=1950805349 node_paths=PackedStringArray("player")]
+offset_right = 341.0
+offset_bottom = 132.0
+theme_override_font_sizes/font_size = 31
+text = "test"
+horizontal_alignment = 1
+script = ExtResource("4_6uwxn")
+player = NodePath("../../CharacterBody2D")
+metadata/_edit_use_anchors_ = true
