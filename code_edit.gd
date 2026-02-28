@@ -8,16 +8,14 @@ func _ready() -> void:
 	pass # Replace with function body.
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	pass
-
 
 func _on_text_changed() -> void:
 	var lines = text.split("\n")
 	
 	if text != old_text:
 		old_text = text
-		print(text)
 		for line in lines:
 			if "=" in line:
 				var text_list := line.split("=")

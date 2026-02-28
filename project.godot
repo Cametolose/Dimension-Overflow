@@ -11,9 +11,9 @@ config_version=5
 [application]
 
 config/name="Game"
-run/main_scene="uid://doglu0t1whx6u"
+run/main_scene="res://ui.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
-config/icon="res://icon.svg"
+config/icon="res://test_script/icon.svg"
 
 [display]
 
