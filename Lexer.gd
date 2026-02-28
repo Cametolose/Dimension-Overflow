@@ -21,7 +21,7 @@ func tokenize(source_code: String) -> void:
 	var cursor := 0
 	var current_line := 1
 	var column_number := 1
-	var keywords = ["if", "else"]	# <- Hier immer neue Keywords hinzufügen 
+	var keywords := ["if", "else"]	# <- Hier immer neue Keywords hinzufügen 
 	
 	while cursor < source_code.length():
 		var char_code = source_code.unicode_at(cursor) 	# Get char at current cursor pos
@@ -77,15 +77,7 @@ func tokenize(source_code: String) -> void:
 		
 	print("Line: " + str(current_line) + "\nColumn: " + str(column_number))
 				
-		
 	
-	
-	var regex_variable = RegEx.create_from_string("[A-Za-z_][\\w]*")
-	var regex_integer = RegEx.create_from_string("\\d")
-	
-	var variable = regex_variable.search(source_code)
-	var integer = regex_integer.search(source_code)
-	
-	
+
 func _on_interpreter_source_code_submitter(source_code: String) -> void:
 	tokenize(source_code)
