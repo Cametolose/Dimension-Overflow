@@ -11,7 +11,7 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	pass
 
-func run_code(text):
+func run_code():
 	pass
 
 
