@@ -1,6 +1,45 @@
 extends Node
 class_name Lexer
 
+# Add new keywords here. Current keywords: https://pynote.readthedocs.io/en/latest/Basics/Keywords.html#id1
+const KEYWORDS := [
+		'False', 
+		'None', 
+		'True', 
+		'and', 
+		'as', 
+		'assert', 
+		'async', 
+		'await', 
+		'break', 
+		'class', 
+		'continue', 
+		'def', 
+		'del', 
+		'elif',
+		'else', 
+		'except', 
+		'finally', 
+		'for', 
+		'from', 
+		'global', 
+		'if', 
+		'import', 
+		'in', 
+		'is', 
+		'lambda', 
+		'nonlocal', 
+		'not', 
+		'or', 
+		'pass', 
+		'raise', 
+		'return', 
+		'try', 
+		'while', 
+		'with', 
+		'yield',
+]
+
 var tab_size := 4
 var cursor := 0
 var current_column := 0
@@ -61,18 +100,18 @@ func peek(offset: int = 0) -> int:
 	return source_code.unicode_at(cursor + offset)
 
 func tokenize(input_text: String) -> void:
+	var start_time = Time.get_ticks_msec()
 	source_code = input_text
 	cursor = 0
 	current_line = 1
 	current_column = 1
 	tokens = []
-	
-	var keywords := ["if", "else"]	# <- Add new keywords here
-	
+
+
 	while cursor < source_code.length():
 		var char_code = source_code.unicode_at(cursor) 	# Get char at current cursor pos
 		match char_code:
-			32: # Leerzeichen
+			32: # Space
 				advance()
 				continue
 				
@@ -87,15 +126,127 @@ func tokenize(input_text: String) -> void:
 				current_column = 1
 				cursor += 1
 				continue
-				
-			61: # "=" Zeichen 
-				if cursor + 1 < source_code.length() and peek(1) == 61:	# Check for two "=" symbols
+			
+			# Punctuators (and equals)
+			61: # "=" 
+				if cursor + 1 < source_code.length() and peek(1) == 61:	   # Check for two "=" symbols
 					add_token(tokens, "EQUALS", "==", null, current_line, current_column)
 					advance(2)
 				else:
 					add_token(tokens, "ASSIGN", "=", null, current_line, current_column)
 					advance()
 				continue
+			
+			40: # "("
+				add_token(tokens, "LEFT_PAREN", "(", null, current_line, current_column)
+				advance()
+				continue
+			
+			41: # ")"
+				add_token(tokens, "RIGHT_PAREN", ")", null, current_line, current_column)
+				advance()
+				continue
+			
+			123: # "{"
+				add_token(tokens, "LEFT_BRACE", "{", null, current_line, current_column)
+				advance()
+				continue
+			
+			125: # "}"
+				add_token(tokens, "RIGHT_BRACE", "}", null, current_line, current_column)
+				advance()
+				continue
+				
+			91: # "["
+				add_token(tokens, "LEFT_BRACKET", "[", null, current_line, current_column)
+				advance()
+				continue
+			
+			93: # "]"
+				add_token(tokens, "RIGHT_BRACKET", "]", null, current_line, current_column)
+				advance()
+				continue
+				
+			58: # ":"
+				add_token(tokens, "COLON", ":", null, current_line, current_column)
+				advance()
+				continue
+				
+			59: # ";"+
+				add_token(tokens, "SEMICOLON", ";", null, current_line, current_column)
+				advance()
+				continue
+				
+			44: # ","
+				add_token(tokens, "COMMA", ",", null, current_line, current_column)
+				advance()
+				continue
+			
+			46: # "."
+				add_token(tokens, "PERIOD", ".", null, current_line, current_column)
+				advance()
+				continue
+			
+			92: # "\"
+				add_token(tokens, "BACKSLASH", "\\", null, current_line, current_column)
+				advance()
+				continue
+			
+			35: # "#" (Comment)
+				# Comment will be ignored until the end of the line. "\n": 10
+				while peek() != 10 and cursor < source_code.length():
+					advance()
+				continue
+			
+			64: # "@"
+				add_token(tokens, "ATSYMBOL", "@", null, current_line, current_column)
+				advance()
+				continue
+			
+			39: # "'"
+				add_token(tokens, "APOSTROPHE", "\'", null, current_line, current_column)
+				advance()
+				continue
+				
+			34: # """
+				add_token(tokens, "QUOTATION", "\"", null, current_line, current_column)
+				advance()
+				continue
+				
+			# Operators (Without equals)
+			42: # "*"
+				if cursor + 1 < source_code.length() and peek(1) == 42: 	# **
+					if cursor + 2 < source_code.length() and peek(2) == 61:  # **=
+						add_token(tokens, "ASSIGN_EXPONENT", "**=", null, current_line, current_column)
+						advance(3)
+					else:	# **
+						add_token(tokens, "EXPONENT", "**", null, current_line, current_column)
+						advance(2)
+				else:	# *
+					if cursor + 1 < source_code.length() and peek(1) == 61: # *=
+						add_token(tokens, "ASSIGN_MULTIPLICATION", "*=", null, current_line, current_column)
+						advance(2)
+					else: # *
+						add_token(tokens, "MULTIPLICATION", "*", null, current_line, current_column)
+						advance(1)
+				continue
+			
+			#37: # "%"
+				#if cursor + 1 < source_code.length() and peek(1) == 61: 	# %=
+					#add_token(tokens, "MODULO_")
+				#else:	# *
+					#if cursor + 1 < source_code.length() and peek(1) == 61: # *=
+						#add_token(tokens, "ASSIGN_MULTIPLICATION", "*=", null, current_line, current_column)
+						#advance(2)
+					#else: # *
+						#add_token(tokens, "MULTIPLICATION", "*", null, current_line, current_column)
+						#advance(1)
+				#continue
+			
+			
+			
+			
+			
 		
 		# Identifier
 		if is_letter(char_code):
@@ -112,7 +263,7 @@ func tokenize(input_text: String) -> void:
 				
 			var word := source_code.substr(start, cursor - start)
 			
-			if word in keywords:
+			if word in KEYWORDS:
 				add_token(tokens, "KEYWORD_" + word.to_upper(), word, null, current_line, start_column)
 			else:
 				add_token(tokens, "IDENTIFIER", word, null, current_line, start_column)
@@ -149,7 +300,6 @@ func tokenize(input_text: String) -> void:
 		# Unknown Character
 		print("Unknown Character: ", char_code)
 		advance()
-				
 
 func _on_interpreter_source_code_submitter(input_text: String) -> void:
 	tokenize(input_text)
