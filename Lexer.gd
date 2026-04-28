@@ -1,46 +1,83 @@
 extends Node
 class_name Lexer
 
+# Collection of all Token Types
+enum T {
+	# Symbols
+	LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE, 
+	LEFT_BRACKET, RIGHT_BRACKET, 
+	COMMA, PERIOD, SEMICOLON, COLON, 
+	BACKSLASH, ATSYMBOL, APOSTROPHE, QUOTATION,
+	
+	# Operator
+	EQUALS, ASSIGN, WALRUS, 
+	ASSIGN_EXPONENT, EXPONENT, 
+	ASSIGN_MULTIPLICATION, MULTIPLICATION, 
+	ASSIGN_MODULO, MODULO, 
+	ASSIGN_INT_DIVISION, INT_DIVISION, ASSIGN_DIVISION, DIVISION,
+	ASSIGN_SUBTRACTION, SUBTRACTION,
+	ASSIGN_ADDITION, ADDITION,
+	ASSIGN_SIGNED_RIGHT_SHIFT, SIGNED_RIGHT_SHIFT,
+	ASSIGN_ZERO_FILL_LEFT_SHIFT, ZERO_FILL_LEFT_SHIFT,
+	EQUAL_GREATER, GREATER, EQUAL_LESS, LESS,
+	ASSIGN_AND, BITWISE_AND, 
+	ASSIGN_OR, BITWISE_OR, 
+	ASSIGN_XOR, BITWISE_XOR, 
+	BITWISE_NOT, EQUAL_NOT,
+	
+	# Literals
+	NUMBER, NUMBER_COMPLEX, NUMBER_HEX, NUMBER_BINARY, NUMBER_OCTAL,
+	
+	# Keywords
+	FALSE, NONE, TRUE, AND, AS, ASSERT, ASYNC, AWAIT, BREAK, 
+	CLASS, CONTINUE, DEF, DEL, ELIF, ELSE, EXCEPT, FINALLY, FOR, 
+	FROM, GLOBAL, IF, IMPORT, IN, IS, LAMBDA, NONLOCAL, NOT, OR,
+	PASS, RAISE, RETURN, TRY, WHILE, WITH, YIELD, MATCH, CASE, TYPE,
+	
+	# Not sure
+	IDENTIFIER, NEWLINE, RETURN_TYPE_HINT,
+}
+
 # Add new keywords here. Current keywords: https://pynote.readthedocs.io/en/latest/Basics/Keywords.html#id1
 const KEYWORDS := {
-		'False': true, 
-		'None': true, 
-		'True': true, 
-		'and': true, 
-		'as': true, 
-		'assert': true, 
-		'async': true, 
-		'await': true, 
-		'break': true, 
-		'class': true, 
-		'continue': true, 
-		'def': true, 
-		'del': true, 
-		'elif': true,
-		'else': true, 
-		'except': true, 
-		'finally': true, 
-		'for': true, 
-		'from': true, 
-		'global': true, 
-		'if': true, 
-		'import': true, 
-		'in': true, 
-		'is': true, 
-		'lambda': true, 
-		'nonlocal': true, 
-		'not': true, 
-		'or': true, 
-		'pass': true, 
-		'raise': true, 
-		'return': true, 
-		'try': true, 
-		'while': true, 
-		'with': true, 
-		'yield': true,
-		'match': true,
-		'case': true,
-		'type': true,
+		'False': T.FALSE, 
+		'None': T.NONE, 
+		'True': T.TRUE, 
+		'and': T.AND, 
+		'as': T.AS, 
+		'assert': T.ASSERT, 
+		'async': T.ASYNC, 
+		'await': T.AWAIT, 
+		'break': T.BREAK, 
+		'class': T.CLASS, 
+		'continue': T.CONTINUE, 
+		'def': T.DEF, 
+		'del': T.DEL, 
+		'elif': T.ELIF,
+		'else': T.ELSE, 
+		'except': T.EXCEPT, 
+		'finally': T.FINALLY,  
+		'for': T.FOR, 
+		'from': T.FROM, 
+		'global': T.GLOBAL, 
+		'if': T.IF, 
+		'import': T.IMPORT, 
+		'in': T.IN, 
+		'is': T.IS, 
+		'lambda': T.LAMBDA, 
+		'nonlocal': T.NONLOCAL, 
+		'not': T.NOT, 
+		'or': T.OR, 
+		'pass': T.PASS, 
+		'raise': T.RAISE, 
+		'return': T.RETURN, 
+		'try': T.TRY, 
+		'while': T.WHILE, 
+		'with': T.WITH, 
+		'yield': T.YIELD,
+		'match': T.MATCH,
+		'case': T.CASE,
+		'type': T.TYPE,
 }
 
 var tab_size := 4
@@ -51,13 +88,13 @@ var source_code := ""
 var tokens := []
 
 class Token:
-	var type: String
+	var type: T
 	var lexeme: String
 	var literal 	# Can be anything (int, float, string)
 	var line: int
 	var col: int
 	
-	func _init(_type: String, _lexeme: String, _literal, _line: int, _col: int):
+	func _init(_type: T, _lexeme: String, _literal, _line: int, _col: int):
 		type = _type
 		lexeme = _lexeme
 		literal = _literal
@@ -65,7 +102,9 @@ class Token:
 		col = _col
 		
 	func _to_string() -> String: 	# Debug for printing
-		return "[%s | '%s' | Val: %s | Line: %d | Col: %d]" % [type, lexeme, str(literal), line, col]
+		var type_name = T.keys()[type]
+		var val_str := str(literal) if literal != null else "null"
+		return "[%-15s | '%s' | Val: %-8s | Line: %d | Col: %d]" % [type_name, lexeme, val_str, line, col]
 
 
 # Called when the node enters the scene tree for the first time.
@@ -78,7 +117,7 @@ func _process(_delta: float) -> void:
 	pass
 	
 
-func add_token(token_list: Array, type: String, lexeme: String, literal, line: int, col: int) -> void:
+func add_token(token_list: Array, type: T, lexeme: String, literal, line: int, col: int) -> void:
 	var new_token = Token.new(type, lexeme, literal, line, col)
 	token_list.append(new_token)
 	
@@ -96,18 +135,24 @@ func is_alphanumeric(c: int) -> bool:
 func consume_number():
 	var start_pos := cursor
 	var start_col := current_column
+	var number_type := T.NUMBER
 	
 	# Check for prefix (0x, 0b, 0o) Hexa, Binary, Okatal
 	if peek() == 48:	# 0: 48
 		var next = peek(1)
 		
 		if next == 120 or next == 88: # "x": 120, "X": 88
-			return consume_prefixed_number(start_pos, start_col, 16, "HEX")
+			return consume_prefixed_number(start_pos, start_col, 16, T.NUMBER_HEX)
 		if next == 98 or next == 66: # "b": 98, "B": 66
-			return consume_prefixed_number(start_pos, start_col, 2, "BINARY")
+			return consume_prefixed_number(start_pos, start_col, 2, T.NUMBER_BINARY)
 		if next == 111 or next == 79: # "o": 111, "O": 79
-			return consume_prefixed_number(start_pos, start_col, 8, "OCTAL")
-	
+			return consume_prefixed_number(start_pos, start_col, 8, T.NUMBER_OCTAL)
+		
+		# Python doesn't allow leading zeroes
+		if is_digit(next):
+			printerr("yntax Error: Leading zeros in decimal integer literals are not permitted.")
+			#TODO add error handling
+			
 	var is_float := false
 	
 	# Use peek() function for char_code
@@ -122,7 +167,7 @@ func consume_number():
 			advance()
 	
 	# Check for after comma
-	if peek() == 46 and is_digit(peek(1)): # Check for period (Float)
+	if peek() == 46: # Check for period (Float)
 		is_float = true
 		advance()
 		
@@ -145,8 +190,15 @@ func consume_number():
 		while is_digit(peek()) or peek() == 95:
 			advance()
 	
+	# Check for complex numbers
+	if peek() == 106 or peek() == 74:	# "j": 106, "J": 74
+		is_float = true
+		number_type = T.NUMBER_COMPLEX
+		advance()
+	
+	
 	var lexeme := source_code.substr(start_pos, cursor - start_pos)
-	var clean_value = lexeme.replace("_", "")
+	var clean_value = lexeme.replace("_", "").trim_suffix("j").trim_suffix("J")
 	
 	var final_value
 	if is_float:
@@ -154,10 +206,10 @@ func consume_number():
 	else:
 		final_value = clean_value.to_int()
 		
-	add_token(tokens, "NUMBER", lexeme, final_value, current_line, start_col)
+	add_token(tokens, number_type, lexeme, final_value, current_line, start_col)
 
 # TODO: Add Error handling for wrong letters/numbers (Octal: 0-7) (Hex: 0-F) (Binary: 0-1)
-func consume_prefixed_number(start_pos: int, start_col: int, base: int, type_name: String):
+func consume_prefixed_number(start_pos: int, start_col: int, base: int, type: T):
 	advance(2) # Skip "0x", "0b" etc.
 	
 	var value_start := cursor
@@ -179,7 +231,7 @@ func consume_prefixed_number(start_pos: int, start_col: int, base: int, type_nam
 		_:
 			final_value = value_part.to_int()
 	
-	add_token(tokens, "NUMBER_" + type_name, lexeme, final_value, current_line, start_col)
+	add_token(tokens, type, lexeme, final_value, current_line, start_col)
 
 func _convert_to_base(string_value: String, base: int) -> int:
 	var result = 0
@@ -218,7 +270,7 @@ func tokenize(input_text: String) -> void:
 				continue
 				
 			10: # New Line
-				add_token(tokens, "NEWLINE", "\\n", null, current_line, current_column)
+				add_token(tokens, T.NEWLINE, "\\n", null, current_line, current_column)
 				current_line += 1
 				current_column = 1
 				cursor += 1
@@ -227,78 +279,72 @@ func tokenize(input_text: String) -> void:
 			46: # "."
 				if is_digit(peek(1)):
 					consume_number()
-					continue
 				else:
-					add_token(tokens, "PERIOD", ".", null, current_line, current_column)
+					add_token(tokens, T.PERIOD, ".", null, current_line, current_column)
 					advance()
-					continue
+				continue
 			
 			# Punctuators
 			61: # "=" 
 				if peek(1) == 61:	   # Check for two "=" symbols
-					add_token(tokens, "EQUALS", "==", null, current_line, current_column)
+					add_token(tokens, T.EQUALS, "==", null, current_line, current_column)
 					advance(2)
 				else:
-					add_token(tokens, "ASSIGN", "=", null, current_line, current_column)
+					add_token(tokens, T.ASSIGN, "=", null, current_line, current_column)
 					advance()
 				continue
 			
 			40: # "("
-				add_token(tokens, "LEFT_PAREN", "(", null, current_line, current_column)
+				add_token(tokens, T.LEFT_PAREN, "(", null, current_line, current_column)
 				advance()
 				continue
 			
 			41: # ")"
-				add_token(tokens, "RIGHT_PAREN", ")", null, current_line, current_column)
+				add_token(tokens, T.RIGHT_PAREN, ")", null, current_line, current_column)
 				advance()
 				continue
 			
 			123: # "{"
-				add_token(tokens, "LEFT_BRACE", "{", null, current_line, current_column)
+				add_token(tokens, T.LEFT_BRACE, "{", null, current_line, current_column)
 				advance()
 				continue
 			
 			125: # "}"
-				add_token(tokens, "RIGHT_BRACE", "}", null, current_line, current_column)
+				add_token(tokens, T.RIGHT_BRACE, "}", null, current_line, current_column)
 				advance()
 				continue
 				
 			91: # "["
-				add_token(tokens, "LEFT_BRACKET", "[", null, current_line, current_column)
+				add_token(tokens, T.LEFT_BRACKET, "[", null, current_line, current_column)
 				advance()
 				continue
 			
 			93: # "]"
-				add_token(tokens, "RIGHT_BRACKET", "]", null, current_line, current_column)
+				add_token(tokens, T.RIGHT_BRACKET, "]", null, current_line, current_column)
 				advance()
 				continue
 				
 			58: # ":"
 				if peek(1) == 61: 	# :=
-					add_token(tokens, "WALRUS", ":=", null, current_line, current_column)
+					add_token(tokens, T.WALRUS, ":=", null, current_line, current_column)
 					advance(2)
 				else:	# :
-					add_token(tokens, "COLON", ":", null, current_line, current_column)
+					add_token(tokens, T.COLON, ":", null, current_line, current_column)
 					advance()
 				continue
 				
 			59: # ";"+
-				add_token(tokens, "SEMICOLON", ";", null, current_line, current_column)
+				add_token(tokens, T.SEMICOLON, ";", null, current_line, current_column)
 				advance()
 				continue
 				
 			44: # ","
-				add_token(tokens, "COMMA", ",", null, current_line, current_column)
-				advance()
-				continue
-			
-			46: # "."
-				add_token(tokens, "PERIOD", ".", null, current_line, current_column)
+				add_token(tokens, T.COMMA, ",", null, current_line, current_column)
 				advance()
 				continue
 			
 			92: # "\"
-				add_token(tokens, "BACKSLASH", "\\", null, current_line, current_column)
+				add_token(tokens, T.BACKSLASH, "\\", null, current_line, current_column)
 				advance()
 				continue
 			
@@ -309,17 +355,17 @@ func tokenize(input_text: String) -> void:
 				continue
 			
 			64: # "@"
-				add_token(tokens, "ATSYMBOL", "@", null, current_line, current_column)
+				add_token(tokens, T.ATSYMBOL, "@", null, current_line, current_column)
 				advance()
 				continue
 			
 			39: # "'"
-				add_token(tokens, "APOSTROPHE", "\'", null, current_line, current_column)
+				add_token(tokens, T.APOSTROPHE, "\'", null, current_line, current_column)
 				advance()
 				continue
 				
 			34: # """
-				add_token(tokens, "QUOTATION", "\"", null, current_line, current_column)
+				add_token(tokens, T.QUOTATION, "\"", null, current_line, current_column)
 				advance()
 				continue
 				
@@ -327,136 +373,136 @@ func tokenize(input_text: String) -> void:
 			42: # "*"
 				if peek(1) == 42: 	# **
 					if peek(2) == 61:  # **=
-						add_token(tokens, "ASSIGN_EXPONENT", "**=", null, current_line, current_column)
+						add_token(tokens, T.ASSIGN_EXPONENT, "**=", null, current_line, current_column)
 						advance(3)
 					else:	# **
-						add_token(tokens, "EXPONENT", "**", null, current_line, current_column)
+						add_token(tokens, T.EXPONENT, "**", null, current_line, current_column)
 						advance(2)
 				else:	# *
 					if peek(1) == 61: # *=
-						add_token(tokens, "ASSIGN_MULTIPLICATION", "*=", null, current_line, current_column)
+						add_token(tokens, T.ASSIGN_MULTIPLICATION, "*=", null, current_line, current_column)
 						advance(2)
 					else: # *
-						add_token(tokens, "MULTIPLICATION", "*", null, current_line, current_column)
+						add_token(tokens, T.MULTIPLICATION, "*", null, current_line, current_column)
 						advance(1)
 				continue
 			
 			37: # "%"
 				if peek(1) == 61: 	# %=
-					add_token(tokens, "ASSIGN_MODULO", "%=", null, current_line, current_column)
+					add_token(tokens, T.ASSIGN_MODULO, "%=", null, current_line, current_column)
 					advance(2)
 				else:	# %
-					add_token(tokens, "MODULO", "%", null, current_line, current_column)
+					add_token(tokens, T.MODULO, "%", null, current_line, current_column)
 					advance()
 				continue
 			
 			47: # "/"
 				if peek(1) == 47: 	# //
 					if peek(2) == 61:  # //=
-						add_token(tokens, "ASSIGN_INT_DIVISION", "//=", null, current_line, current_column)
+						add_token(tokens, T.ASSIGN_INT_DIVISION, "//=", null, current_line, current_column)
 						advance(3)
 					else:	# //
-						add_token(tokens, "INT_DIVISION", "//", null, current_line, current_column)
+						add_token(tokens, T.INT_DIVISION, "//", null, current_line, current_column)
 						advance(2)
 				else:	# /
 					if peek(1) == 61: # /=
-						add_token(tokens, "ASSIGN_DIVISION", "/=", null, current_line, current_column)
+						add_token(tokens, T.ASSIGN_DIVISION, "/=", null, current_line, current_column)
 						advance(2)
 					else: # /
-						add_token(tokens, "DIVISION", "/", null, current_line, current_column)
+						add_token(tokens, T.DIVISION, "/", null, current_line, current_column)
 						advance(1)
 				continue
 			
 			45: # "-"
 				if peek(1) == 61: 	# -=
-					add_token(tokens, "ASSIGN_SUBTRACTION", "-=", null, current_line, current_column)
+					add_token(tokens, T.ASSIGN_SUBTRACTION, "-=", null, current_line, current_column)
 					advance(2)
 				elif peek(1) == 62: 	# ->
-					add_token(tokens, "RETURN_TYPE_HINT", "->", null, current_line, current_column)
+					add_token(tokens, T.RETURN_TYPE_HINT, "->", null, current_line, current_column)
 					advance(2)
 				else:	# -
-					add_token(tokens, "SUBTRACTION", "-", null, current_line, current_column)
+					add_token(tokens, T.SUBTRACTION, "-", null, current_line, current_column)
 					advance()
 				continue
 				
 			43: # "+"
 				if peek(1) == 61: 	# +=
-					add_token(tokens, "ASSIGN_ADDITION", "+=", null, current_line, current_column)
+					add_token(tokens, T.ASSIGN_ADDITION, "+=", null, current_line, current_column)
 					advance(2)
 				else:	# +
-					add_token(tokens, "ADDITION", "+", null, current_line, current_column)
+					add_token(tokens, T.ADDITION, "+", null, current_line, current_column)
 					advance()
 				continue
 			
 			62: # ">"
 				if peek(1) == 62: 	# >>
 					if peek(2) == 61:  # >>=
-						add_token(tokens, "ASSIGN_SIGNED_RIGHT_SHIFT", ">>=", null, current_line, current_column)
+						add_token(tokens, T.ASSIGN_SIGNED_RIGHT_SHIFT, ">>=", null, current_line, current_column)
 						advance(3)
 					else:	# >> -> Bitwise operator
-						add_token(tokens, "SIGNED_RIGHT_SHIFT", ">>", null, current_line, current_column)
+						add_token(tokens, T.SIGNED_RIGHT_SHIFT, ">>", null, current_line, current_column)
 						advance(2)
 				else:	# >
 					if peek(1) == 61: # >=
-						add_token(tokens, "EQUAL_GREATER", ">=", null, current_line, current_column)
+						add_token(tokens, T.EQUAL_GREATER, ">=", null, current_line, current_column)
 						advance(2)
 					else: # >
-						add_token(tokens, "GREATER", ">", null, current_line, current_column)
+						add_token(tokens, T.GREATER, ">", null, current_line, current_column)
 						advance(1)
 				continue
 				
 			63: # "<"
 				if peek(1) == 63: 	# <<
 					if peek(2) == 61:  # <<=
-						add_token(tokens, "ASSIGN_ZERO_FILL_LEFT_SHIFT", "<<=", null, current_line, current_column)
+						add_token(tokens, T.ASSIGN_ZERO_FILL_LEFT_SHIFT, "<<=", null, current_line, current_column)
 						advance(3)
 					else:	# << -> Bitwise operator
-						add_token(tokens, "ZERO_FILL_LEFT_SHIFT", "<<", null, current_line, current_column)
+						add_token(tokens, T.ZERO_FILL_LEFT_SHIFT, "<<", null, current_line, current_column)
 						advance(2)
 				else:	# <
 					if peek(1) == 61: # <=
-						add_token(tokens, "EQUAL_LESS", "<=", null, current_line, current_column)
+						add_token(tokens, T.EQUAL_LESS, "<=", null, current_line, current_column)
 						advance(2)
 					else: # <
-						add_token(tokens, "LESS", "<", null, current_line, current_column)
+						add_token(tokens, T.LESS, "<", null, current_line, current_column)
 						advance(1)
 				continue
 			
 			38: # "&"
 				if peek(1) == 61: 	# &=
-					add_token(tokens, "ASSIGN_AND", "&=", null, current_line, current_column)
+					add_token(tokens, T.ASSIGN_AND, "&=", null, current_line, current_column)
 					advance(2)
 				else:	# &
-					add_token(tokens, "AND", "&", null, current_line, current_column)
+					add_token(tokens, T.BITWISE_AND, "&", null, current_line, current_column)
 					advance()
 				continue
 			
 			124: # "|"
 				if peek(1) == 61: 	# |=
-					add_token(tokens, "ASSIGN_OR", "|=", null, current_line, current_column)
+					add_token(tokens, T.ASSIGN_OR, "|=", null, current_line, current_column)
 					advance(2)
 				else:	# |
-					add_token(tokens, "OR", "|", null, current_line, current_column)
+					add_token(tokens, T.BITWISE_OR, "|", null, current_line, current_column)
 					advance()
 				continue
 				
 			94: # "^"
 				if peek(1) == 61: 	# ^=
-					add_token(tokens, "ASSIGN_XOR", "^=", null, current_line, current_column)
+					add_token(tokens, T.ASSIGN_XOR, "^=", null, current_line, current_column)
 					advance(2)
 				else:	# ^
-					add_token(tokens, "XOR", "^", null, current_line, current_column)
+					add_token(tokens, T.BITWISE_XOR, "^", null, current_line, current_column)
 					advance()
 				continue
 			
 			126: # "~"
-				add_token(tokens, "NOT", "~", null, current_line, current_column)
+				add_token(tokens, T.BITWISE_NOT, "~", null, current_line, current_column)
 				advance()
 				continue
 				
 			33: # "!"
 				if peek(1) == 61: 	# !=
-					add_token(tokens, "EQUAL_NOT", "!=", null, current_line, current_column)
+					add_token(tokens, T.EQUAL_NOT, "!=", null, current_line, current_column)
 					advance(2)
 					continue
 
@@ -475,11 +521,9 @@ func tokenize(input_text: String) -> void:
 					break 	# Break loop if no valid char is found
 				
 			var word := source_code.substr(start, cursor - start)
+			var type: T = KEYWORDS.get(word, T.IDENTIFIER)
 			
-			if KEYWORDS.has(word):
-				add_token(tokens, "KEYWORD_" + word.to_upper(), word, null, current_line, start_column)
-			else:
-				add_token(tokens, "IDENTIFIER", word, null, current_line, start_column)
+			add_token(tokens, type, word, null, current_line, start_column)
 			continue
 			
 		# Number
