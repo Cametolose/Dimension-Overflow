@@ -235,8 +235,8 @@ func consume_prefixed_number(start_pos: int, start_col: int, base: int, type: T)
 
 func _convert_to_base(string_value: String, base: int) -> int:
 	var result = 0
-	for char in string_value:
-		result = result * base + char.to_int()
+	for current_char in string_value:
+		result = result * base + current_char.to_int()
 	return result
 	
 func advance(n: int = 1) -> void:

@@ -6,6 +6,8 @@
 .import/
 export.cfg
 export_credentials.cfg
+*.tmp
+*.import
 
 # Imported translations (automatically generated from CSV files)
 *.translation
@@ -14,3 +16,7 @@ export_credentials.cfg
 .mono/
 data_*/
 mono_crash.*.json
+
+# System-Garbage
+.DS_Store
+Thumbs.db
