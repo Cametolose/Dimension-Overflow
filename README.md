@@ -1,4 +1,6 @@
-# Coding Game
+# Dimension Overflow
+Dimension Overflow is an incremental coding game built in Godot where players work with a custom Python-like language to build, automate and optimize systems.
+
 
 ## License
 
