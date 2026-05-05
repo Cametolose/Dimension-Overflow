@@ -9,7 +9,7 @@ labels: parser
 Describe the feature or fix.
 
 ## Done when:
-- [] implemented
-- [] tested
+- [ ] implemented
+- [ ] tested
 
 
